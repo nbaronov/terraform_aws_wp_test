@@ -17,7 +17,8 @@ resource "aws_instance" "wp_node1_instance" {
   availability_zone      = var.wp_nodes_availability_zone[0]
 
   depends_on = [
-    aws_efs_mount_target.efs_mount_target_1
+    aws_efs_mount_target.efs_mount_target_1,
+    aws_instance.db_instance
   ]
 
 
@@ -33,7 +34,7 @@ resource "aws_instance" "wp_node1_instance" {
   provisioner "file" {
     destination = "/tmp/setup_apache_and_nfs.sh"
     content = templatefile(
-      "template/setup_apache_and_nfs.tftpl",
+      "${path.module}/template/setup_apache_and_nfs.tftpl",
       {
         efs_dir   = var.efs_dir,
         efs_mount = aws_efs_mount_target.efs_mount_target_1.ip_address
@@ -44,7 +45,7 @@ resource "aws_instance" "wp_node1_instance" {
   provisioner "file" {
     destination = "/tmp/wordpress.conf"
     content = templatefile(
-      "template/wordpress_apache.tftpl",
+      "${path.module}/template/wordpress_apache.tftpl",
       {
         wordpress_dir = var.wordpress_dir
       }
@@ -102,7 +103,8 @@ resource "aws_instance" "wp_node2_instance" {
 
   depends_on = [
     aws_instance.wp_node1_instance,
-    aws_efs_mount_target.efs_mount_target_2
+    aws_efs_mount_target.efs_mount_target_2,
+    aws_instance.db_instance
   ]
 
   connection {
@@ -115,7 +117,7 @@ resource "aws_instance" "wp_node2_instance" {
   provisioner "file" {
     destination = "/tmp/wordpress.conf"
     content = templatefile(
-      "template/wordpress_apache.tftpl",
+      "${path.module}/template/wordpress_apache.tftpl",
       {
         wordpress_dir = var.wordpress_dir
       }
@@ -125,7 +127,7 @@ resource "aws_instance" "wp_node2_instance" {
   provisioner "file" {
     destination = "/tmp/setup_apache_and_nfs.sh"
     content = templatefile(
-      "template/setup_apache_and_nfs.tftpl",
+      "${path.module}/template/setup_apache_and_nfs.tftpl",
       {
         efs_dir   = var.efs_dir,
         efs_mount = aws_efs_mount_target.efs_mount_target_2.ip_address
@@ -184,10 +186,39 @@ EOT
     private_key = file(var.private_key_location)
   }
 
+  provisioner "file" {
+    source      = "${path.module}/script/optimize_mysql_tables.sh"
+    destination = "/tmp/optimize_mysql_tables.sh"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/optimize_mysql_tables.service"
+    content = templatefile(
+      "${path.module}/template/optimize_mysql_tables_service.tfpl",
+      {
+        mysql_database_name = var.mysql_database_name,
+        bin_dir             = var.bin_dir
+      }
+    )
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/config/optimize_mysql_tables.timer"
+    destination = "/tmp/optimize_mysql_tables.timer"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sh -e -x /tmp/setup_mysql.sh",
-      "sudo mysql < /tmp/create_wordpress_database_and_user.sql"
+      "sudo mysql < /tmp/create_wordpress_database_and_user.sql",
+
+      "sudo mkdir -p /app/bin",
+      "sudo mv /tmp/optimize_mysql_tables.sh ${var.bin_dir}/",
+      "sudo chmod +x ${var.bin_dir}/optimize_mysql_tables.sh",
+      "sudo mv /tmp/optimize_mysql_tables.service /etc/systemd/system/",
+      "sudo mv /tmp/optimize_mysql_tables.timer /etc/systemd/system/",
+      "sudo systemctl start optimize_mysql_tables.timer",
+      "sudo systemctl enable optimize_mysql_tables.timer"
     ]
   }
 

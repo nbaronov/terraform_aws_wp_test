@@ -1,0 +1,9 @@
+[Unit]
+Description="Run optimize_mysql_tables.service every Sunday, at 2am"
+
+[Timer]
+OnCalendar=Sun *-*-* 02:00:00
+Unit=optimize_mysql_tables.service
+
+[Install]
+WantedBy=multi-user.target
