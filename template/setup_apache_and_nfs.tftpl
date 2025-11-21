@@ -1,0 +1,17 @@
+set -x
+set -e
+apt update -qq
+apt install -qq -y nfs-common
+
+mkdir ${efs_dir}
+mount -t nfs ${efs_mount}:/ ${efs_dir}
+chown www-data ${efs_dir}
+'${efs_mount}:/ ${efs_dir} nfs defaults 0 0' | sudo tee -a /etc/fstab
+
+apt install -qq -y apache2 ghostscript libapache2-mod-php php php-bcmath php-curl php-imagick php-intl php-json php-mbstring php-mysql php-xml php-zip
+
+mv /tmp/wordpress.conf /etc/apache2/sites-available/wordpress.conf
+a2ensite wordpress
+a2dissite 000-default
+a2enmod rewrite
+service apache2 reload
