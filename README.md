@@ -30,7 +30,7 @@ Credential Variables:
 
 Other notable variables:
 | Name | Description | Value|
-|------|-------------||
+|------|-------------|------|
 |wordpress_version|WP Version|6.8.3|
 
 
