@@ -31,7 +31,7 @@ Credential Variables:
 Other notable variables:
 | Name | Description | Value|
 |------|-------------|------|
-|wordpress_version|WP Version|6.8.3|
+|wordpress_version|Wordpress Version|6.8.3|
 
 
 ### 🚀 Deploy
@@ -83,7 +83,7 @@ $ terraform destroy
 - MySQL script schedule is hard-coded
 
 
-## Insipration
+## Inspiration
 - https://numericaideas.com/blog/deploy-wordpress-2-tier-aws-architecture-with-terraform/ / https://github.com/numerica-ideas/community/tree/master/terraform/deploy-wordpress-2tier-aws-architecture-with-terraform
 - https://ubuntu.com/tutorials/install-and-configure-wordpress
 
